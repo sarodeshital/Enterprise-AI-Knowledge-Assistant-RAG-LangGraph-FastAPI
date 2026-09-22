@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+streamlit
+langchain
+langgraph
+langchain-openai
+faiss-cpu
+pypdf
+python-docx
+sqlalchemy
+psycopg2-binary
+redis
+pytest
+ragas
+python-jose
+python-dotenv
