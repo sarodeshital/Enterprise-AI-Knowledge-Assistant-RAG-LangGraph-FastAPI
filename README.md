@@ -1,65 +1,68 @@
-# Enterprise GenAI Knowledge & Agent Platform
+# Enterprise AI Knowledge Assistant — RAG + LangGraph + FastAPI
 
-A Python-based GenAI application that lets users ask questions about enterprise documents and get answers using RAG and an agent workflow.
+A Python-based GenAI application for asking questions about enterprise documents.
 
-The project is mainly built to understand and demonstrate how an enterprise-style GenAI application can be structured using FastAPI, LangGraph, vector search and Azure OpenAI.
+The project uses RAG to retrieve relevant information from documents before generating an answer. LangGraph is used to organize the workflow, while FastAPI provides the API layer.
 
-## What this project does
+I built this project to practice how a knowledge-assistant application can be structured using RAG, LLMs, agent workflows and a backend API.
+
+## What the application does
 
 A user sends a question to the application.
 
-The application then:
+The application:
 
-1. Receives the question through a FastAPI API.
-2. Determines what type of request it is.
-3. Searches the available documents for relevant information.
+1. Receives the question through the FastAPI API.
+2. Processes the request.
+3. Retrieves relevant information from the available documents.
 4. Passes the retrieved information to the LLM.
-5. Generates an answer based on the retrieved content.
-6. Runs a validation step before returning the response.
-7. Returns the answer along with the available source information.
+5. Generates an answer using the retrieved context.
+6. Performs a validation step.
+7. Returns the response along with source information where available.
 
-The main goal is to keep the generated answer connected to the retrieved documents instead of asking the LLM to answer everything from its own knowledge.
+The main idea is to give the LLM relevant document content instead of asking it to answer everything from its general knowledge.
 
-## Example Use Case
+## Example questions
 
-An employee could ask questions such as:
+An employee could ask:
 
 - What is the company leave policy?
-- What is the process for requesting access?
-- What are the steps for an incident escalation?
-- Which documents describe the vendor onboarding process?
+- How do I request system access?
+- What is the incident escalation process?
+- What are the vendor onboarding steps?
+- Which document contains the access approval process?
 
-The system retrieves relevant document content and uses that information to generate the response.
+The system searches the available knowledge and uses the retrieved information to generate the response.
 
 ## Architecture
 
 ```text
 User
-  |
-  v
+ |
+ v
 FastAPI
-  |
-  v
+ |
+ v
 LangGraph Workflow
-  |
-  +-------------------+
-  |                   |
-  v                   v
-Retrieval Agent    Validation
-  |
-  v
-Vector Search
-  |
-  v
-FAISS
-  |
-  v
+ |
+ +----------------------+
+ |                      |
+ v                      v
+Retrieval Agent       Validation
+ |
+ v
+Embeddings
+ |
+ v
+FAISS Vector Store
+ |
+ v
 Relevant Documents
-  |
-  v
-Azure OpenAI / LLM
-  |
-  v
+ |
+ v
+LLM
+ |
+ v
 Grounded Response
 ```
 
@@ -75,21 +78,25 @@ Grounded Response
 - Pytest
 - Docker
 
-FAISS is used as the local vector store for this project. For a larger deployment, it could be replaced with a managed search service such as Azure AI Search.
+FAISS is used as the local vector store for development.
+
+For a larger deployment, the vector-search layer could be replaced with a managed service such as Azure AI Search.
 
 ## Why RAG?
 
-Enterprise documents can change regularly. Retraining an LLM every time a document changes would not be practical.
+Enterprise documents can change over time.
 
-With RAG, the application can retrieve the relevant information at query time and provide that information to the LLM as context.
+Instead of retraining the LLM whenever a document changes, RAG allows the application to retrieve the relevant document content at the time of the question.
 
-This also makes it easier to show where the answer came from.
+The retrieved content is then provided to the LLM as context.
+
+This also makes it possible to return the source information used for the answer.
 
 ## Why LangGraph?
 
-I used LangGraph to keep the workflow organized into separate steps.
+I used LangGraph to organize the application into separate workflow steps.
 
-For example:
+A simplified version of the workflow is:
 
 ```text
 Question
@@ -107,37 +114,47 @@ Validate
 Response
 ```
 
-This makes it easier to add conditional steps later instead of putting the entire workflow into one large prompt or function.
+Using a graph makes it easier to add conditions or additional steps later.
+
+For example, a future version could route different types of questions to different retrieval or processing steps.
+
+## Why FastAPI?
+
+FastAPI provides the backend API for the application.
+
+It allows the GenAI workflow to be accessed through an HTTP endpoint instead of keeping the application logic inside a user interface.
+
+This also makes it easier to connect a frontend or another application to the backend later.
 
 ## Why Azure OpenAI?
 
-Azure OpenAI can be used when the application needs an Azure-based LLM deployment.
+Azure OpenAI can be used as the LLM provider for the application.
 
-It also fits well with other Azure services that could be added later for authentication, secrets, monitoring and deployment.
+It is also possible to combine it with other Azure services for authentication, secrets, monitoring and deployment.
 
-For local development, the project can run in demo mode without Azure credentials.
+For local development, the project can also run in demo mode without Azure credentials.
 
 ## Project Structure
 
 ```text
-enterprise-genai-rag-agent-platform/
-├── app/
-│   ├── main.py
-│   ├── config.py
-│   ├── schemas.py
-│   ├── graph.py
-│   ├── agents/
-│   │   └── retrieval_agent.py
-│   └── services/
-│       ├── embeddings.py
-│       ├── llm.py
-│       └── vector_store.py
-├── data/
-│   └── sample_documents/
+Enterprise-AI-Knowledge-Assistant-RAG-LangGraph-FastAPI/
+├── agents/
+│   └── planner/
+├── api/
+│   └── chat/
+├── backend/
+│   └── main
+├── docker/
+├── docs/
+│   └── architecture/
+├── frontend/
+│   └── streamlit_app/
+├── rag/
+│   └── embeddings/
 ├── tests/
+│   └── test_api/
 ├── .env.example
-├── .gitignore
-├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 ```
@@ -164,7 +181,7 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Install the dependencies
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -172,41 +189,39 @@ pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Copy:
+Copy `.env.example` to `.env`.
 
-```text
-.env.example
-```
+Add the required configuration if you want to connect the application to Azure OpenAI or another configured LLM provider.
 
-to:
-
-```text
-.env
-```
-
-Add the required configuration if you want to use the Azure OpenAI integration.
-
-### 5. Start the API
+### 5. Start the application
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn backend.main:app --reload
 ```
 
-The API will be available at:
+The API can then be accessed through:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
+## Docker
+
+The repository also contains a `docker-compose.yml` file for running the application using Docker.
+
+```bash
+docker compose up --build
+```
+
 ## Local Demo
 
-The project includes a demo mode so the basic application can be tested without connecting to Azure.
+The project can be used in a local/demo setup without connecting to Azure credentials, depending on the configured application mode.
 
-This is useful for testing the API and project workflow locally before configuring an LLM provider.
+This makes it easier to test the API and RAG workflow locally.
 
 ## Testing
 
-Tests are included for the application logic and API behavior.
+Tests are included for the API and application behavior.
 
 Run:
 
@@ -214,31 +229,33 @@ Run:
 pytest
 ```
 
-## Possible Production Changes
+## Possible Production Improvements
 
-This repository is a portfolio project, so some components are kept simple for local development.
+This is a portfolio project, so some components are kept simple for local development.
 
-If I were extending it for a production environment, I would consider:
+If I were extending the application for production, I would consider:
 
 - Azure AI Search instead of local FAISS
 - Microsoft Entra ID for authentication
 - Azure Key Vault for secrets
 - Azure Container Apps or AKS for deployment
-- Application Insights/OpenTelemetry for monitoring
+- Application Insights or OpenTelemetry for monitoring
 - Retry and timeout handling
-- Rate limiting
-- CI/CD pipeline
-- RAG evaluation and response-quality monitoring
+- API rate limiting
+- CI/CD
+- RAG evaluation
+- Response-quality monitoring
+- Document ingestion and update pipelines
 
-These are possible production improvements and are not being claimed as implemented in this repository.
+These are possible extensions and are not claims of an existing production deployment.
 
 ## Important Note
 
-This is a portfolio/reference implementation.
+This repository is a portfolio project.
 
-I have not represented it as a production system with real enterprise users or production traffic.
+It is designed to demonstrate my understanding of RAG, LLM applications and agent workflows. It should not be interpreted as a production system with real enterprise users or production traffic.
 
-The purpose of the project is to demonstrate my understanding of:
+The main areas demonstrated by the project are:
 
 - RAG
 - LLM integration
@@ -246,30 +263,56 @@ The purpose of the project is to demonstrate my understanding of:
 - Vector search
 - FastAPI
 - Agent-based application design
+- API development
 - Basic validation and guardrails
+- Docker-based development
 
 ## Interview Explanation
 
-### 30-second explanation
+### 30-second version
 
-> "I built an enterprise-style knowledge assistant using Python, FastAPI, LangGraph and RAG. The user sends a question through the API, the application retrieves relevant information from a vector store, and the LLM generates an answer using that retrieved context. I also added a validation step so the workflow is not just a single LLM call. I used FAISS for local development and designed the project so it could later be extended with Azure AI Search and other Azure services."
+> "I built an enterprise knowledge assistant using Python, FastAPI, LangGraph and RAG. A user sends a question through the API, the application retrieves relevant information from the document knowledge base, and the LLM generates a response using that retrieved context. I also added a validation step so the workflow is more controlled than a simple LLM call. I used FAISS for local vector search and designed the project so the retrieval layer could later be moved to a managed service such as Azure AI Search."
 
-### Key points I can explain
+## Key Technical Points I Can Explain
 
-- How document retrieval works
-- Why embeddings are required
-- How FAISS performs similarity search
-- How RAG reduces unsupported answers
-- Why LangGraph is useful for multi-step workflows
-- How FastAPI exposes the GenAI application
-- How Azure OpenAI can be integrated
-- How the project could be moved from local development to Azure
-- How validation/guardrails can be added around an LLM
+### RAG
+
+How documents are processed, converted into embeddings and searched to retrieve relevant context.
+
+### Embeddings
+
+How text is converted into vectors so that semantically similar content can be retrieved.
+
+### FAISS
+
+How the local vector index is used for similarity search.
+
+### LangGraph
+
+How the application workflow is divided into multiple steps and how state can be passed between those steps.
+
+### FastAPI
+
+How the GenAI workflow is exposed through API endpoints.
+
+### Azure OpenAI
+
+How an Azure-hosted LLM can be connected to the application.
+
+### Validation
+
+How an additional validation step can be used to check the generated response before returning it.
+
+### Production Evolution
+
+How the local implementation could be extended with Azure AI Search, authentication, Key Vault, monitoring, CI/CD and evaluation.
 
 ## Limitations
 
-This project currently uses a local FAISS vector store and sample documents.
+The current project is primarily designed for learning and portfolio demonstration.
+
+The local version uses sample documents and a local vector-search setup.
 
 It is not presented as a production deployment.
 
-The Azure components mentioned in the production section are possible extensions rather than claims of an existing production implementation.
+Azure services mentioned in the production section are possible extensions unless they are explicitly configured and implemented in the current version.
